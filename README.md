@@ -8,10 +8,12 @@ Nova is a local-first product search app with:
 
 ## Quick Run
 
-Use this exact sequence in PowerShell:
+Clone and run with this sequence in Windows PowerShell:
 
 ```powershell
-cd C:\Users\moham\Hello-There-local
+git lfs install
+git clone https://github.com/double-u9/Nova-Vision-Language-Product-Search-Engine.git
+cd Nova-Vision-Language-Product-Search-Engine
 npm.cmd install
 npm.cmd run setup:python
 npm.cmd run dev
@@ -31,32 +33,35 @@ Why `npm.cmd` instead of `npm`:
 ## Step By Step
 
 1. Install Node.js LTS.
-2. Open PowerShell.
-3. Change into the repaired project folder:
+2. Install Git and Git LFS.
+3. Open PowerShell.
+4. Clone the repository:
 
 ```powershell
-cd C:\Users\moham\Hello-There-local
+git lfs install
+git clone https://github.com/double-u9/Nova-Vision-Language-Product-Search-Engine.git
+cd Nova-Vision-Language-Product-Search-Engine
 ```
 
-4. Install frontend packages:
+5. Install frontend packages:
 
 ```powershell
 npm.cmd install
 ```
 
-5. Create the Python environment and install backend dependencies:
+6. Create the Python environment and install backend dependencies:
 
 ```powershell
 npm.cmd run setup:python
 ```
 
-6. Start the app:
+7. Start the app:
 
 ```powershell
 npm.cmd run dev
 ```
 
-7. Wait for the first startup to finish, then open `http://127.0.0.1:3000`.
+8. Wait for the first startup to finish, then open `http://127.0.0.1:3000`.
 
 The first run can be slow because it may:
 
@@ -69,6 +74,7 @@ The first run can be slow because it may:
 
 - Node.js 20+ or newer
 - Python 3.11 or 3.12
+- Git LFS
 - Git on your PATH once, for the `clip` dependency
 
 If Python auto-detection fails, set `NOVA_PYTHON` in `.env` to a specific `python.exe` or `python` path.
@@ -125,6 +131,7 @@ The defaults are already set for normal localhost use, so `.env` is optional.
 
 ## Notes
 
+- The repository uses Git LFS for `nova/data/faiss.index`, so run `git lfs install` before cloning or pulling the full project.
 - `http://127.0.0.1:5000/` returning `{"detail":"Not Found"}` is normal because the backend does not define a root `/` route.
 - Use `/health` or `/docs` to verify the backend is running.
 - Search results now return the requested `top_k` result count instead of being hard-capped to 5.
