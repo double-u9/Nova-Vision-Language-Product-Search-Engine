@@ -21,7 +21,7 @@ export type ProductResult = {
 
 export type SearchResponse = {
   results: ProductResult[];
-  query_type: "text" | "image" | "hybrid";
+  query_type: "text" | "image" | "hybrid" | "similar";
   latency_ms: number;
   cache_hit: boolean;
   alpha?: number | null;
@@ -106,4 +106,24 @@ export async function searchHybrid(
   });
 
   return readJsonOrThrow<SearchResponse>(response, "hybrid search failed");
+}
+
+export async function searchSimilar(
+  productId: string,
+  query?: string,
+  topK = 24,
+  refresh = false,
+): Promise<SearchResponse> {
+  const response = await fetch(`${API_BASE}/search/similar`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      product_id: productId,
+      query: query?.trim() || null,
+      top_k: topK,
+      refresh,
+    }),
+  });
+
+  return readJsonOrThrow<SearchResponse>(response, "similar search failed");
 }

@@ -252,5 +252,27 @@ class ProductIndex:
         conn.close()
         return results
 
+    def get_product(self, product_id: str) -> Optional[Dict]:
+        """Return one product row by product_id."""
+        conn = sqlite3.connect(self.db_path)
+        row = conn.execute(
+            "SELECT faiss_id, product_id, image_path, category, metadata "
+            "FROM products WHERE product_id = ?",
+            (product_id,),
+        ).fetchone()
+        conn.close()
+
+        if row is None:
+            return None
+
+        faiss_id, product_id, image_path, category, meta_json = row
+        return {
+            "faiss_id": int(faiss_id),
+            "product_id": product_id,
+            "image_path": image_path,
+            "category": category,
+            "metadata": json.loads(meta_json) if meta_json else {},
+        }
+
     def __len__(self):
         return self.index.ntotal if self.index else 0

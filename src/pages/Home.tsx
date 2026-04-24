@@ -13,14 +13,77 @@ import { AnimatedCounter } from "@/components/AnimatedCounter";
 import {
   type SearchResponse,
   type HealthResponse,
+  type ProductResult,
   searchText,
   searchImage,
   searchHybrid,
+  searchSimilar,
   getHealth,
 } from "@/lib/nova-api";
 import { useShortcut } from "@/lib/hooks";
 
 type Mode = "idle" | "loading" | "ready" | "error";
+type SimilarPayload = { kind: "similar"; productId: string; query?: string };
+type ExecutablePayload = SearchPayload | SimilarPayload;
+type SearchContext =
+  | { kind: "text"; baseQuery: string }
+  | { kind: "image"; file: File }
+  | { kind: "hybrid"; baseQuery: string; file: File; alpha: number }
+  | { kind: "similar"; productId: string };
+
+const IMAGE_REFINEMENT_ALPHA = 0.35;
+
+function composeQuery(baseQuery: string, modifiers: string[]) {
+  return [baseQuery.trim(), ...modifiers].filter(Boolean).join(", ");
+}
+
+function labelForContext(context: SearchContext) {
+  switch (context.kind) {
+    case "text":
+    case "hybrid":
+      return context.baseQuery;
+    case "image":
+      return "Visual reference";
+    case "similar":
+      return `More like ${context.productId}`;
+  }
+}
+
+function buildPayloadFromContext(
+  context: SearchContext,
+  modifiers: string[],
+): ExecutablePayload {
+  switch (context.kind) {
+    case "text":
+      return {
+        kind: "text",
+        text: composeQuery(context.baseQuery, modifiers),
+      };
+    case "hybrid":
+      return {
+        kind: "hybrid",
+        text: composeQuery(context.baseQuery, modifiers),
+        file: context.file,
+        alpha: context.alpha,
+      };
+    case "image":
+      if (modifiers.length === 0) {
+        return { kind: "image", file: context.file };
+      }
+      return {
+        kind: "hybrid",
+        text: modifiers.join(", "),
+        file: context.file,
+        alpha: IMAGE_REFINEMENT_ALPHA,
+      };
+    case "similar":
+      return {
+        kind: "similar",
+        productId: context.productId,
+        query: modifiers.length > 0 ? modifiers.join(", ") : undefined,
+      };
+  }
+}
 
 export default function Home() {
   const [mode, setMode] = useState<Mode>("idle");
@@ -28,8 +91,10 @@ export default function Home() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastQuery, setLastQuery] = useState<string>("");
-  const [lastPayload, setLastPayload] = useState<SearchPayload | null>(null);
+  const [resultLabel, setResultLabel] = useState<string>("");
+  const [searchContext, setSearchContext] = useState<SearchContext | null>(null);
+  const [activeRefinements, setActiveRefinements] = useState<string[]>([]);
+  const [lastPayload, setLastPayload] = useState<ExecutablePayload | null>(null);
   const [latencyHistory, setLatencyHistory] = useState<number[]>([]);
   const searchBarRef = useRef<SearchBarHandle>(null);
 
@@ -49,13 +114,16 @@ export default function Home() {
     };
   }, []);
 
-  const runSearch = useCallback(async (payload: SearchPayload) => {
+  const executeSearch = useCallback(async (
+    payload: ExecutablePayload,
+    nextLabel: string,
+    nextRefinements: string[],
+  ) => {
     setMode("loading");
     setError(null);
     setLastPayload(payload);
-    if (payload.kind === "text") setLastQuery(payload.text);
-    else if (payload.kind === "hybrid") setLastQuery(payload.text);
-    else setLastQuery("Visual reference");
+    setResultLabel(nextLabel);
+    setActiveRefinements(nextRefinements);
 
     try {
       let res: SearchResponse;
@@ -63,6 +131,8 @@ export default function Home() {
         res = await searchText(payload.text, 30);
       } else if (payload.kind === "image") {
         res = await searchImage(payload.file, 30);
+      } else if (payload.kind === "similar") {
+        res = await searchSimilar(payload.productId, payload.query, 30);
       } else {
         res = await searchHybrid(payload.text, payload.file, payload.alpha, 30);
       }
@@ -75,20 +145,59 @@ export default function Home() {
     }
   }, []);
 
-  const handleRefineProduct = useCallback(
-    (productId: string) => {
-      void runSearch({ kind: "text", text: `similar to ${productId}` });
+  const runSearch = useCallback(
+    (payload: SearchPayload) => {
+      let nextContext: SearchContext;
+
+      if (payload.kind === "text") {
+        nextContext = { kind: "text", baseQuery: payload.text.trim() };
+      } else if (payload.kind === "image") {
+        nextContext = { kind: "image", file: payload.file };
+      } else {
+        nextContext = {
+          kind: "hybrid",
+          baseQuery: payload.text.trim(),
+          file: payload.file,
+          alpha: payload.alpha,
+        };
+      }
+
+      setSearchContext(nextContext);
+      void executeSearch(buildPayloadFromContext(nextContext, []), labelForContext(nextContext), []);
     },
-    [runSearch],
+    [executeSearch],
   );
 
-  const handleRefineModifier = useCallback(
-    (modifier: string) => {
-      const base = lastQuery && lastQuery !== "Visual reference" ? lastQuery : "";
-      const next = base ? `${base}, ${modifier}` : modifier;
-      void runSearch({ kind: "text", text: next });
+  const handleMoreLikeThis = useCallback(
+    (productId: string) => {
+      const nextContext: SearchContext = { kind: "similar", productId };
+      setSearchContext(nextContext);
+      void executeSearch(
+        buildPayloadFromContext(nextContext, []),
+        labelForContext(nextContext),
+        [],
+      );
     },
-    [runSearch, lastQuery],
+    [executeSearch],
+  );
+
+  const handleRefineToggle = useCallback(
+    (modifier: string) => {
+      if (!searchContext) {
+        return;
+      }
+
+      const nextRefinements = activeRefinements.includes(modifier)
+        ? activeRefinements.filter((item) => item !== modifier)
+        : [...activeRefinements, modifier];
+
+      void executeSearch(
+        buildPayloadFromContext(searchContext, nextRefinements),
+        labelForContext(searchContext),
+        nextRefinements,
+      );
+    },
+    [activeRefinements, executeSearch, searchContext],
   );
 
   // Keyboard shortcuts
@@ -106,7 +215,10 @@ export default function Home() {
 
   const heroLifted = mode !== "idle";
   const hasImageRef = useMemo(
-    () => lastPayload?.kind === "image" || lastPayload?.kind === "hybrid",
+    () =>
+      lastPayload?.kind === "image" ||
+      lastPayload?.kind === "hybrid" ||
+      lastPayload?.kind === "similar",
     [lastPayload],
   );
   const indexSize = health?.index_size ?? 0;
@@ -289,7 +401,7 @@ export default function Home() {
                   {mode === "loading" ? "Searching" : "Results for"}
                 </div>
                 <h2 className="mt-0.5 truncate font-serif text-xl font-light tracking-tight sm:text-2xl">
-                  {lastQuery || "—"}
+                  {resultLabel || "—"}
                   {hasImageRef && (
                     <span className="ml-2 font-mono text-xs uppercase tracking-[0.14em] text-muted-foreground">
                       + image
@@ -311,7 +423,10 @@ export default function Home() {
             </div>
 
             {mode === "ready" && response && (
-              <RefinePills onRefine={handleRefineModifier} />
+              <RefinePills
+                activeModifiers={activeRefinements}
+                onToggle={handleRefineToggle}
+              />
             )}
           </>
         )}
@@ -319,7 +434,7 @@ export default function Home() {
         <ResultsGrid
           results={mode === "loading" ? [] : response?.results ?? []}
           loading={mode === "loading"}
-          onRefine={handleRefineProduct}
+          onRefine={handleMoreLikeThis}
         />
 
         {mode === "idle" && (

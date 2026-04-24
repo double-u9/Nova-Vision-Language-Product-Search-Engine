@@ -102,13 +102,30 @@ def _load_category_lookup() -> dict[str, str]:
   return lookup
 
 
+def _resolve_category(product_id: str, raw_category: str | None) -> str:
+  if raw_category and raw_category != "unknown":
+    return raw_category
+  return _category_lookup.get(product_id, "unknown")
+
+
+def _resolve_image_path(image_path: str) -> Path:
+  candidate = Path(image_path)
+  if candidate.is_absolute():
+    return candidate
+
+  resolved = (BASE_DIR / candidate).resolve()
+  if resolved.exists():
+    return resolved
+
+  return (IMAGE_DIR / candidate.name).resolve()
+
+
 def _format_results(raw_results) -> list[dict]:
   formatted = []
 
   for result in raw_results:
     product_id = result["product_id"]
-    raw_category = result.get("category") or "unknown"
-    category = raw_category if raw_category != "unknown" else _category_lookup.get(product_id, "unknown")
+    category = _resolve_category(product_id, result.get("category"))
 
     formatted.append(
       {
@@ -213,6 +230,14 @@ class TextSearchRequest(BaseModel):
   latency_target: int | None = None
 
 
+class SimilarSearchRequest(BaseModel):
+  product_id: str = Field(..., min_length=1, description="Reference product ID")
+  query: str | None = Field(None, description="Optional refinement text")
+  top_k: int = Field(DEFAULT_TOP_K, ge=1, le=MAX_TOP_K)
+  refresh: bool = False
+  category_match: bool = True
+
+
 class ProductResult(BaseModel):
   product_id: str
   image_path: str
@@ -296,6 +321,60 @@ def search_text(request: TextSearchRequest):
   return SearchResponse(
     results=_format_results(result["results"]),
     query_type=result["query_type"],
+    latency_ms=result["latency_ms"],
+    cache_hit=result["cache_hit"],
+    alpha=result["alpha"],
+  )
+
+
+@app.post("/search/similar", response_model=SearchResponse)
+def search_similar(request: SimilarSearchRequest):
+  pipeline = _ensure_pipeline_ready()
+  product = pipeline.index.get_product(request.product_id)
+
+  if product is None:
+    raise HTTPException(404, f"Product {request.product_id} was not found")
+
+  image_path = _resolve_image_path(product["image_path"])
+  if not image_path.exists():
+    raise HTTPException(404, f"Image for {request.product_id} was not found")
+
+  source_category = _resolve_category(product["product_id"], product.get("category"))
+  requested_top_k = _normalize_top_k(request.top_k)
+  refinement_text = (request.query or "").strip() or None
+  search_top_k = max(requested_top_k * 4, 90)
+
+  with Image.open(image_path) as source_image:
+    result = pipeline.search(
+      text=refinement_text,
+      image=source_image.convert("RGB"),
+      category=source_category if source_category != "unknown" else "default",
+      top_k=search_top_k,
+      use_cache=not request.refresh and refinement_text is None,
+    )
+
+  formatted_results = _format_results(result["results"])
+  without_source = [
+    item for item in formatted_results if item["product_id"] != request.product_id
+  ]
+
+  if request.category_match and source_category != "unknown":
+    same_category = [
+      item for item in without_source if item["category"] == source_category
+    ]
+    different_category = [
+      item for item in without_source if item["category"] != source_category
+    ]
+    filtered_results = same_category + different_category
+  else:
+    filtered_results = without_source
+
+  final_results = filtered_results[:requested_top_k]
+  _track_request(result["latency_ms"])
+
+  return SearchResponse(
+    results=final_results,
+    query_type="similar",
     latency_ms=result["latency_ms"],
     cache_hit=result["cache_hit"],
     alpha=result["alpha"],
