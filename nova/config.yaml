@@ -1,0 +1,56 @@
+# config.yaml — Central configuration for Nova CLIP Search Engine
+
+model:
+  name: "ViT-B/32"                  # CLIP backbone
+  embedding_dim: 512
+  device: "auto"                    # "auto" | "cuda" | "cpu"
+  batch_size_gpu: 256
+  batch_size_cpu: 64
+
+data:
+  dataset: "fashion_iq"             # "fashion_iq" | "amazon_products"
+  image_dir: "data/fashionIQ_dataset/images"
+  metadata_path: "data/metadata.parquet"
+  image_size: 224
+  max_text_length: 77               # CLIP tokenizer limit
+
+index:
+  type: "IVFFlat"                   # "Flat" | "IVFFlat" | "IVFPQ"
+  nlist: 256                        # IVF cluster count
+  nprobe: 32                        # Clusters searched at query time
+  m: 64                             # PQ sub-quantizers (IVFPQ only)
+  nbits: 8                          # PQ bits per sub-vector
+  index_path: "data/faiss.index"
+  metadata_db: "data/products.db"
+
+retrieval:
+  top_k_candidates: 50              # ANN candidates before re-ranking
+  top_k_final: 5                    # Final results returned
+  hybrid_alpha: 0.5                 # Default text weight in hybrid fusion
+  cache_size: 128                   # LRU query cache entries
+
+reranker:
+  enabled: false
+  model_path: "models/reranker.pt"
+  hidden_dim: 512
+  use_features: ["diff", "product", "concat"]  # Cross-modal features
+
+training:
+  hard_negatives: true
+  negatives_per_positive: 5
+  temperature: 0.07
+  lr: 1e-5
+  epochs: 10
+  batch_size: 128
+
+evaluation:
+  test_split: 0.15
+  val_split: 0.15
+  recall_ks: [1, 5, 10]
+  latency_warmup_queries: 50
+  latency_eval_queries: 1000
+
+ui:
+  port: 8501
+  page_title: "Nova — Product Search"
+  max_upload_size_mb: 10
