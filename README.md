@@ -6,19 +6,22 @@
 ![Retrieval](https://img.shields.io/badge/Retrieval-CLIP%20%2B%20FAISS-orange)
 ![Platform](https://img.shields.io/badge/Platform-Localhost-blue)
 
-Nova is a local-first, multimodal product search engine that supports text, image, and hybrid retrieval over a prebuilt FashionIQ-backed catalog. The project ships with a React frontend, a FastAPI backend, a FAISS search index, and local product image serving so it can be cloned and run as a complete end-to-end system.
+Nova is a local-first multimodal product search application built around CLIP and FAISS. It supports text search, image search, hybrid text-plus-image retrieval, and local catalog browsing over a prebuilt FashionIQ-backed dataset.
+
+The repository includes the frontend, backend, local image assets, metadata database, and the FAISS index required to run the full experience on localhost.
 
 ## Table of Contents
 
 - [Overview](#overview)
+- [Product Tour](#product-tour)
 - [Key Features](#key-features)
 - [Architecture](#architecture)
 - [Quick Start](#quick-start)
+- [Fresh Windows Setup](#fresh-windows-setup)
+- [Run URLs](#run-urls)
 - [Detailed Setup](#detailed-setup)
-- [How To Use](#how-to-use)
 - [API Endpoints](#api-endpoints)
 - [Configuration](#configuration)
-- [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
 - [Data Assets](#data-assets)
 - [Validation](#validation)
@@ -27,91 +30,101 @@ Nova is a local-first, multimodal product search engine that supports text, imag
 
 ## Overview
 
-This repository contains a full local web application for cross-modal product retrieval:
+Nova is designed as a complete local search system:
 
 - Search products with natural language
-- Search by uploading a reference image
+- Search from a reference image
 - Blend text and image into a hybrid query
-- Serve real product images from the local dataset
-- Inspect and test the backend through FastAPI docs
+- Inspect latency, catalog status, and recent search health
+- Run everything locally with a React frontend and FastAPI backend
 
-The repository includes the application source code and the local search assets needed to run the system, including the prebuilt FAISS index and product metadata.
+## Product Tour
+
+### Landing Experience
+
+<p align="center">
+  <img src="./docs/screenshots/hero-home.png" alt="Nova landing page" width="900" />
+</p>
+<p align="center"><em>Editorial landing page with text, image, and hybrid search entry points.</em></p>
+
+### Hybrid Retrieval
+
+<p align="center">
+  <img src="./docs/screenshots/hybrid-red-shirt.png" alt="Hybrid search results for a red t-shirt query" width="900" />
+</p>
+<p align="center"><em>Hybrid retrieval combines a text prompt with an uploaded reference image to surface visually aligned matches.</em></p>
+
+### Behind The Search
+
+<p align="center">
+  <img src="./docs/screenshots/insight-drawer.png" alt="Nova insight drawer showing query mode, latency, and catalog stats" width="720" />
+</p>
+<p align="center"><em>The insight drawer exposes query mode, latency, result count, and live catalog health.</em></p>
 
 ## Key Features
 
-- Text search powered by CLIP text embeddings
-- Image search powered by CLIP image embeddings
-- Hybrid search with adjustable text-image fusion
-- Fast nearest-neighbor retrieval using FAISS
-- FastAPI backend with `/health`, `/metrics`, and interactive `/docs`
-- React + Vite frontend with a polished local search UI
-- Local dataset image serving from the backend
-- Windows-friendly development workflow with `npm.cmd`
+- CLIP-powered text retrieval
+- CLIP-powered image retrieval
+- Hybrid fusion with adjustable text/image weighting
+- Fast nearest-neighbor search using FAISS
+- "More like this" visual similarity retrieval
+- Toggleable and removable refinement chips
+- FastAPI backend with `/health`, `/metrics`, and `/docs`
+- Local image serving from the dataset
+- Windows-friendly startup flow for both Command Prompt and PowerShell
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  A["React + Vite Frontend<br/>localhost:3000"] --> B["FastAPI Backend<br/>localhost:5000"]
-  B --> C["CLIP Embedder"]
+  A["React + Vite Frontend<br/>127.0.0.1:3000"] --> B["FastAPI Backend<br/>127.0.0.1:5000"]
+  B --> C["CLIP Encoder"]
   C --> D["FAISS Index"]
-  D --> E["Product Metadata DB"]
+  D --> E["SQLite Product Metadata"]
   B --> F["Local Product Images"]
 ```
 
 Search flow:
 
-1. The frontend sends a text, image, or hybrid query to the FastAPI backend.
-2. The backend encodes the query with CLIP.
+1. The frontend sends a text, image, hybrid, or similar-item query to the backend.
+2. The backend encodes the request with CLIP.
 3. FAISS retrieves the nearest candidate products.
-4. Metadata and image paths are resolved locally.
+4. Product metadata and local image paths are resolved.
 5. Results are returned to the frontend for browsing and refinement.
 
 ## Quick Start
 
-For Windows PowerShell, use this exact flow:
+### Windows Command Prompt
+
+Use this when you are running inside `cmd.exe`.
+
+```cmd
+git lfs install
+git clone https://github.com/double-u9/Nova-Vision-Language-Product-Search-Engine.git
+cd Nova-Vision-Language-Product-Search-Engine
+node -v
+npm -v
+npm install
+npm run setup:python
+npm run dev
+```
+
+### Windows PowerShell
+
+Use this when PowerShell blocks `npm.ps1` or when you want the safest Windows path.
 
 ```powershell
 git lfs install
 git clone https://github.com/double-u9/Nova-Vision-Language-Product-Search-Engine.git
 cd Nova-Vision-Language-Product-Search-Engine
+node -v
+npm -v
 npm.cmd install
 npm.cmd run setup:python
 npm.cmd run dev
 ```
 
-Then open:
-
-- Frontend UI: `http://127.0.0.1:3000`
-- Backend health: `http://127.0.0.1:5000/health`
-- Backend docs: `http://127.0.0.1:5000/docs`
-
-Why `npm.cmd`:
-
-- PowerShell may block `npm.ps1` because of execution policy
-- `npm.cmd` avoids that issue and works reliably on Windows
-
-## Detailed Setup
-
-### Requirements
-
-- Node.js 20 or newer
-- Python 3.11 or 3.12
-- Git
-- Git LFS
-
-### Windows Setup
-
-```powershell
-git lfs install
-git clone https://github.com/double-u9/Nova-Vision-Language-Product-Search-Engine.git
-cd Nova-Vision-Language-Product-Search-Engine
-npm.cmd install
-npm.cmd run setup:python
-npm.cmd run dev
-```
-
-### macOS / Linux Setup
+### macOS / Linux
 
 ```bash
 git lfs install
@@ -122,7 +135,56 @@ npm run setup:python
 npm run dev
 ```
 
+## Fresh Windows Setup
+
+If this is your first time running the project on a Windows machine:
+
+1. Install Git and Git LFS.
+2. Install Python 3.11 or 3.12.
+3. Install Node.js LTS and make sure `npm` is included.
+4. Open a brand-new terminal after installation.
+5. Verify your tools before running the project:
+
+```cmd
+node -v
+npm -v
+py --version
+git lfs version
+```
+
+6. Enter the repository root and confirm `package.json` exists:
+
+```cmd
+cd Nova-Vision-Language-Product-Search-Engine
+dir package.json
+```
+
+If `package.json` is not found, you are in the wrong folder.
+
+## Run URLs
+
+Once `npm run dev` or `npm.cmd run dev` is running:
+
+- Frontend UI: `http://127.0.0.1:3000`
+- Backend health: `http://127.0.0.1:5000/health`
+- Backend docs: `http://127.0.0.1:5000/docs`
+
+## Detailed Setup
+
+### Requirements
+
+- Node.js 20 or newer
+- Python 3.11 or 3.12
+- Git
+- Git LFS
+
 ### Production-Style Local Run
+
+Windows Command Prompt:
+
+```cmd
+npm start
+```
 
 Windows PowerShell:
 
@@ -138,35 +200,27 @@ npm start
 
 ### First Startup Notes
 
-The first run can take a while because the project may:
+The first run may take a while because Nova may:
 
-- Create the Python virtual environment
+- Create a Python virtual environment
 - Install backend Python dependencies
 - Download CLIP model weights
 - Load the FAISS index into memory
-
-## How To Use
-
-After the app starts:
-
-1. Open `http://127.0.0.1:3000`
-2. Enter a text query, upload an image, or use both
-3. Review the returned products and scores
-4. Use the backend docs at `http://127.0.0.1:5000/docs` to test the API directly
 
 ## API Endpoints
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| `GET` | `/health` | Backend health and startup state |
-| `GET` | `/metrics` | Simple request and latency metrics |
-| `POST` | `/search/text` | Text-only product search |
-| `POST` | `/search/image` | Image-only product search |
-| `POST` | `/search/hybrid` | Combined text + image search |
+| `GET` | `/health` | Backend health and startup status |
+| `GET` | `/metrics` | Request and latency metrics |
+| `POST` | `/search/text` | Text-only search |
+| `POST` | `/search/image` | Image-only search |
+| `POST` | `/search/hybrid` | Text + image hybrid search |
+| `POST` | `/search/similar` | Similar-item retrieval from a product ID |
 
 Important note:
 
-- `http://127.0.0.1:5000/` returning `{"detail":"Not Found"}` is expected because the backend does not define a root `/` route
+- `http://127.0.0.1:5000/` returning `{"detail":"Not Found"}` is expected because the backend does not define a root `/` route.
 
 ## Configuration
 
@@ -179,26 +233,19 @@ The project supports local overrides through `.env`. A template is included in [
 | `BACKEND_HOST` | `127.0.0.1` | Backend bind host |
 | `BACKEND_PORT` | `5000` | Backend port |
 | `VITE_API_BASE_URL` | `http://127.0.0.1:5000` | Frontend API base URL |
-| `NOVA_CORS_ORIGINS` | `http://localhost:3000,http://127.0.0.1:3000` | Allowed local frontend origins |
+| `NOVA_CORS_ORIGINS` | `http://localhost:3000,http://127.0.0.1:3000` | Allowed frontend origins |
 | `NOVA_PYTHON` | unset | Pin a specific Python executable |
 | `NOVA_BACKEND_RELOAD` | unset | Enable backend auto-reload in dev mode |
-
-## Tech Stack
-
-- Frontend: React 19, Vite, TypeScript, Radix UI, TanStack Query
-- Backend: FastAPI, Uvicorn, Python
-- Retrieval: OpenAI CLIP, FAISS
-- Data: SQLite metadata, local image dataset, prebuilt FAISS index
-- Tooling: npm scripts, Git LFS
 
 ## Project Structure
 
 ```text
 .
 |- attached_assets/      Supporting design/reference assets
+|- docs/screenshots/     README product screenshots
 |- nova/                 Backend code, data assets, index, metadata
 |- public/               Static frontend assets
-|- scripts/              Local setup and run helpers
+|- scripts/              Local setup, run, and maintenance helpers
 |- src/                  React frontend source
 |- .env.example          Environment template
 |- .gitattributes        Git LFS tracking rules
@@ -214,11 +261,11 @@ The project supports local overrides through `.env`. A template is included in [
 
 ## Data Assets
 
-This repository includes a full local runtime dataset:
+This repository ships with a complete local retrieval bundle:
 
 - `nova/data/fashionIQ_dataset/images/` for product images
 - `nova/data/products.db` for product metadata
-- `nova/data/faiss.index` for the prebuilt FAISS retrieval index
+- `nova/data/faiss.index` for the prebuilt FAISS search index
 
 Git LFS is required for the FAISS index:
 
@@ -226,15 +273,24 @@ Git LFS is required for the FAISS index:
 git lfs install
 ```
 
-If you clone without Git LFS, the FAISS index may be downloaded as a pointer file instead of the real asset.
+If Git LFS is missing, `faiss.index` may clone as a pointer file instead of the real binary.
 
 ## Validation
 
-The project was validated locally with:
+The project has been validated locally with:
+
+Windows PowerShell:
 
 ```powershell
 npm.cmd run setup:python
 npm.cmd run build
+```
+
+Command Prompt / macOS / Linux:
+
+```bash
+npm run setup:python
+npm run build
 ```
 
 Successful validation confirms:
@@ -242,16 +298,68 @@ Successful validation confirms:
 - Python dependencies install cleanly
 - TypeScript compilation passes
 - The Vite production build completes successfully
+- The backend can boot with the local FAISS index and metadata
 
 ## Troubleshooting
 
-### PowerShell blocks `npm`
+### `npm` is not recognized
 
-If PowerShell complains about `npm.ps1`, use:
+Node.js is either not installed correctly or not on `PATH`.
+
+What to do:
+
+1. Reinstall Node.js LTS
+2. Make sure `npm` is included
+3. Reopen the terminal
+4. Run:
+
+```cmd
+node -v
+npm -v
+```
+
+### `npm.ps1 cannot be loaded` in PowerShell
+
+Use `npm.cmd` instead:
 
 ```powershell
 npm.cmd install
+npm.cmd run setup:python
 npm.cmd run dev
+```
+
+### `Could not read package.json`
+
+You are not inside the repository root.
+
+Fix:
+
+```cmd
+cd Nova-Vision-Language-Product-Search-Engine
+dir package.json
+```
+
+### `Missing script: "dev...activate"`
+
+Two commands were pasted on the same line.
+
+Use separate commands only:
+
+```cmd
+npm run setup:python
+npm run dev
+```
+
+Do not append `.venv\Scripts\activate` to the same `npm run dev` line.
+
+### Do I need `py -m npm`?
+
+No.
+
+`npm` belongs to Node.js, not Python. Use:
+
+```cmd
+npm install
 ```
 
 ### Backend root shows `{"detail":"Not Found"}`
@@ -263,23 +371,7 @@ That is normal. Use:
 
 ### First run is slow
 
-That is also normal on a fresh machine because the project sets up Python dependencies, CLIP weights, and the index runtime.
-
-### Clone is incomplete
-
-Make sure Git LFS is installed and enabled before cloning:
-
-```bash
-git lfs install
-```
-
-### Python is not detected
-
-Create a `.env` file and set:
-
-```env
-NOVA_PYTHON=C:\Path\To\python.exe
-```
+That is expected on a fresh machine because Nova is setting up Python packages, loading CLIP, and warming the index.
 
 ## License
 

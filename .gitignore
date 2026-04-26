@@ -39,8 +39,10 @@ npm-debug.log
 yarn-error.log
 testem.log
 dev-live.*.log
+dev-readme.*.log
 /typings
 .agents/
+.tmp/
 
 # System Files
 .DS_Store
