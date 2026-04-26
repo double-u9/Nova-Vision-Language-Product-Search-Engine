@@ -112,6 +112,11 @@ export const SearchBar = forwardRef<SearchBarHandle, Props>(function SearchBar(
 
   const canSubmit = !!(text.trim() || file);
   const shortcutLabel = isMac() ? "⌘K" : "Ctrl K";
+  const shellShadow = dragOver
+    ? "var(--surface-shadow-drag)"
+    : focused
+      ? "var(--surface-shadow-focus)"
+      : "var(--surface-shadow-rest)";
 
   return (
     <div
@@ -128,14 +133,15 @@ export const SearchBar = forwardRef<SearchBarHandle, Props>(function SearchBar(
         layout
         className={`group relative rounded-2xl border bg-card transition-all duration-300 ${
           dragOver
-            ? "border-accent shadow-[0_0_0_4px_rgba(184,92,60,0.12),0_18px_50px_-18px_rgba(43,42,40,0.20)]"
+            ? "border-accent"
             : focused
-              ? "border-foreground/25 shadow-[0_0_0_4px_rgba(43,42,40,0.05),0_22px_60px_-22px_rgba(43,42,40,0.28)]"
-              : "border-card-border shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_12px_40px_-22px_rgba(43,42,40,0.18)]"
+              ? "border-foreground/25"
+              : "border-card-border"
         }`}
+        style={{ boxShadow: shellShadow }}
       >
         {/* Subtle inner highlight */}
-        <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-white/40 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-white/40 to-transparent dark:from-white/8" />
 
         <div className="relative flex items-stretch gap-3 px-4 py-3 sm:px-5 sm:py-4">
           <button

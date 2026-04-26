@@ -32,7 +32,7 @@ export function ProductCard({ product, onRefine, index, topScore }: Props) {
         delay: Math.min(index, 14) * 0.025,
         ease: [0.22, 1, 0.36, 1],
       }}
-      className="group relative overflow-hidden rounded-xl border border-card-border bg-card transition-all duration-300 hover:border-foreground/15 hover:shadow-[0_22px_48px_-28px_rgba(43,42,40,0.30)]"
+      className="group relative overflow-hidden rounded-xl border border-card-border bg-card transition-all duration-300 hover:border-foreground/15 hover:shadow-[var(--card-hover-shadow)]"
       data-testid={`card-product-${product.product_id}`}
     >
       {/* Index numeral */}

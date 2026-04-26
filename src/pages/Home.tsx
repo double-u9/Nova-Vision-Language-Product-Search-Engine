@@ -10,6 +10,7 @@ import { ResultsGrid } from "@/components/ResultsGrid";
 import { InsightDrawer } from "@/components/InsightDrawer";
 import { RefinePills } from "@/components/RefinePills";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   type SearchResponse,
   type HealthResponse,
@@ -230,15 +231,13 @@ export default function Home() {
         <div
           className="absolute left-1/2 top-[-20%] h-[640px] w-[1100px] -translate-x-1/2 rounded-full blur-[120px]"
           style={{
-            background:
-              "radial-gradient(closest-side, rgba(184,92,60,0.10), rgba(184,92,60,0.04) 55%, transparent 75%)",
+            background: "var(--hero-glow-primary)",
           }}
         />
         <div
           className="absolute left-[10%] top-[40%] h-[400px] w-[600px] rounded-full blur-[120px]"
           style={{
-            background:
-              "radial-gradient(closest-side, rgba(96,82,68,0.07), transparent 70%)",
+            background: "var(--hero-glow-secondary)",
           }}
         />
       </div>
@@ -258,23 +257,26 @@ export default function Home() {
             Visual Atelier
           </span>
         </div>
-        <button
-          type="button"
-          onClick={() => setDrawerOpen(true)}
-          className="flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs text-muted-foreground backdrop-blur-sm transition hover:border-foreground/30 hover:text-foreground"
-          data-testid="button-open-drawer"
-        >
-          <Info className="h-3 w-3" />
-          <span className="hidden sm:inline">Behind the search</span>
-          {response && (
-            <>
-              <span className="hidden h-3 w-px bg-border sm:inline-block" />
-              <span className="font-mono tabular-nums text-foreground">
-                {response.latency_ms.toFixed(0)} ms
-              </span>
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            className="flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs text-muted-foreground backdrop-blur-sm transition hover:border-foreground/30 hover:text-foreground"
+            data-testid="button-open-drawer"
+          >
+            <Info className="h-3 w-3" />
+            <span className="hidden sm:inline">Behind the search</span>
+            {response && (
+              <>
+                <span className="hidden h-3 w-px bg-border sm:inline-block" />
+                <span className="font-mono tabular-nums text-foreground">
+                  {response.latency_ms.toFixed(0)} ms
+                </span>
+              </>
+            )}
+          </button>
+        </div>
       </header>
 
       <motion.section

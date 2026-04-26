@@ -69,6 +69,7 @@
 
 /* LIGHT MODE — editorial warm neutrals */
 :root {
+  color-scheme: light;
   --button-outline: rgba(43, 42, 40, .14);
   --badge-outline: rgba(43, 42, 40, .08);
 
@@ -76,6 +77,14 @@
 
   --elevate-1: rgba(43, 42, 40, .035);
   --elevate-2: rgba(43, 42, 40, .08);
+  --grain-dot: rgba(43, 42, 40, 0.025);
+  --shimmer-stripe: rgba(255, 255, 255, 0.55);
+  --hero-glow-primary: radial-gradient(closest-side, rgba(184, 92, 60, 0.10), rgba(184, 92, 60, 0.04) 55%, transparent 75%);
+  --hero-glow-secondary: radial-gradient(closest-side, rgba(96, 82, 68, 0.07), transparent 70%);
+  --surface-shadow-rest: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 12px 40px -22px rgba(43, 42, 40, 0.18);
+  --surface-shadow-focus: 0 0 0 4px rgba(43, 42, 40, 0.05), 0 22px 60px -22px rgba(43, 42, 40, 0.28);
+  --surface-shadow-drag: 0 0 0 4px rgba(184, 92, 60, 0.12), 0 18px 50px -18px rgba(43, 42, 40, 0.20);
+  --card-hover-shadow: 0 22px 48px -28px rgba(43, 42, 40, 0.30);
 
   /* warm off-white #FAFAF7 */
   --background: 48 24% 97%;
@@ -138,10 +147,19 @@
 
 /* DARK MODE — kept for completeness */
 .dark {
+  color-scheme: dark;
   --button-outline: rgba(255,255,255, .12);
   --badge-outline: rgba(255,255,255, .06);
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
+  --grain-dot: rgba(255, 255, 255, 0.035);
+  --shimmer-stripe: rgba(255, 255, 255, 0.16);
+  --hero-glow-primary: radial-gradient(closest-side, rgba(184, 92, 60, 0.20), rgba(184, 92, 60, 0.06) 52%, transparent 80%);
+  --hero-glow-secondary: radial-gradient(closest-side, rgba(80, 68, 61, 0.18), transparent 72%);
+  --surface-shadow-rest: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 18px 50px -24px rgba(0, 0, 0, 0.55);
+  --surface-shadow-focus: 0 0 0 4px rgba(255, 255, 255, 0.04), 0 24px 70px -26px rgba(0, 0, 0, 0.65);
+  --surface-shadow-drag: 0 0 0 4px rgba(184, 92, 60, 0.18), 0 20px 55px -20px rgba(0, 0, 0, 0.58);
+  --card-hover-shadow: 0 24px 55px -28px rgba(0, 0, 0, 0.68);
 
   --background: 30 6% 9%;
   --foreground: 48 18% 94%;
@@ -203,6 +221,9 @@
     font-feature-settings: "ss01", "cv11";
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    transition:
+      background-color 240ms ease,
+      color 240ms ease;
   }
   .font-serif {
     font-family: var(--font-serif);
@@ -216,7 +237,7 @@
 @layer utilities {
   .grain {
     background-image:
-      radial-gradient(rgba(43, 42, 40, 0.025) 1px, transparent 1px);
+      radial-gradient(var(--grain-dot) 1px, transparent 1px);
     background-size: 3px 3px;
   }
   .shimmer {
@@ -232,7 +253,7 @@
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(255, 255, 255, 0.55),
+      var(--shimmer-stripe),
       transparent
     );
     animation: nova-shimmer 1.6s infinite;
